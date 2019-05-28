@@ -1127,19 +1127,31 @@ outras funções auxiliares que sejam necessárias.
 \begin{code}
 
 inExpr :: Either Int (Op,(Expr,Expr)) -> Expr
-inExpr = undefined
+inExpr = either Num (\(x,(y,z)) -> Bop y x z)
 
 outExpr :: Expr -> Either Int (Op,(Expr,Expr))
-outExpr = undefined
+outExpr (Num a) = i1 a
+outExpr (Bop e1 o e2) = i2 (o,(e1,e2))
 
-recExpr f = undefined
+recExpr f = baseExpr id f
 
-cataExpr g = undefined
+cataExpr g = g . (recExpr (cataExpr g)) . outExpr
+
+opCorresponde :: Op -> Int -> Int -> Int
+opCorresponde (Op "+") = (+)
+opCorresponde (Op "*") = (*)
+opCorresponde (Op "-") = (-)
 
 calcula :: Expr -> Int
-calcula = undefined
+calcula = cataExpr (either id (\(o,b)->uncurry (opCorresponde o) b))
 
-show' = undefined
+showInt :: Int -> String
+showInt = (\i -> if (i < 0) then "(" ++ show i ++ ")" else show i)
+
+showAux :: (Op,(String, String)) -> String
+showAux ((Op a),(s1,s2)) = "(" ++ s1 ++ a ++ s2 ++ ")"
+
+show' = cataExpr (either showInt showAux)
 
 compile :: String -> Codigo
 compile = undefined 
