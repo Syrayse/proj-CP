@@ -1141,17 +1141,13 @@ opCorresponde :: Op -> Int -> Int -> Int
 opCorresponde (Op "+") = (+)
 opCorresponde (Op "-") = (-)
 
-
 calcula :: Expr -> Int
 calcula = cataExpr (either id (\(o,b)->uncurry (opCorresponde o) b))
 
-showInt :: Int -> String
-showInt = (\i -> " " ++ show i ++ " ")
-
 showAux :: (Op,(String, String)) -> String
-showAux ((Op a),(s1,s2)) = "(" ++ s1 ++ a ++ s2 ++ ")"
+showAux ((Op a),(s1,s2)) = "(" ++ s1 ++ " " ++ a ++ " " ++ s2 ++ ")"
 
-show' = cataExpr (either showInt showAux)
+show' = cataExpr (either show showAux)
 
 compile :: String -> Codigo
 compile = undefined 
