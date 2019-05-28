@@ -1139,14 +1139,14 @@ cataExpr g = g . (recExpr (cataExpr g)) . outExpr
 
 opCorresponde :: Op -> Int -> Int -> Int
 opCorresponde (Op "+") = (+)
-opCorresponde (Op "*") = (*)
 opCorresponde (Op "-") = (-)
+
 
 calcula :: Expr -> Int
 calcula = cataExpr (either id (\(o,b)->uncurry (opCorresponde o) b))
 
 showInt :: Int -> String
-showInt = (\i -> if (i < 0) then "(" ++ show i ++ ")" else show i)
+showInt = (\i -> " " ++ show i ++ " ")
 
 showAux :: (Op,(String, String)) -> String
 showAux ((Op a),(s1,s2)) = "(" ++ s1 ++ a ++ s2 ++ ")"
