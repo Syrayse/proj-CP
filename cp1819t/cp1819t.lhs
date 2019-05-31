@@ -1154,7 +1154,16 @@ showAux ((Op a),(s1,s2)) = "(" ++ s1 ++ " " ++ a ++ " " ++ s2 ++ ")"
 show' = cataExpr (either show showAux)
 
 compile :: String -> Codigo
-compile = undefined 
+compile = cataExpr (either (singl . showInt) posOrd) . fst . head . readExp
+  where posOrd (o,(e1,e2)) = e1 ++ e2 ++ (singl (showOp o))
+
+showInt :: Int -> String
+showInt = (++) "PUSH " . show
+
+showOp :: Op -> String
+showOp (Op "+") = "ADD"
+showOp (Op "*") = "MUL"
+
 \end{code}
 
 \subsection*{Problema 2}
