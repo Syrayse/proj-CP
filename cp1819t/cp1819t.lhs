@@ -1137,6 +1137,10 @@ recExpr f = baseExpr id f
 
 cataExpr g = g . (recExpr (cataExpr g)) . outExpr
 
+anaExpr f = inExpr . (recExpr (anaExpr f)) . f
+
+hyloExpr h g = cataExpr h . anaExpr g
+
 opCorresponde :: Op -> Int -> Int -> Int
 opCorresponde (Op "+") = (+)
 opCorresponde (Op "-") = (-)
