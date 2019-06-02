@@ -1207,27 +1207,34 @@ cos' x = prj . for loop init where
 \subsection*{Problema 4}
 Triologia ``ana-cata-hilo":
 \begin{code}
-outFS (FS l) = undefined
-outNode = undefined
+outFS :: FS a b -> [(a, Either b (FS a b))]
+outFS (FS l) = map (id >< outNode) l
 
-baseFS f g h = undefined
+outNode :: Node a b ->  Either b (FS a b)
+outNode (File b) = i1 b
+outNode (Dir fs) = i2 fs
+
+baseFS f g h = map (f >< ( g -|- h))
 
 cataFS :: ([(a, Either b c)] -> c) -> FS a b -> c
-cataFS g = undefined
+cataFS g = g . recFS (cataFS g) . outFS
 
 anaFS :: (c -> [(a, Either b c)]) -> c -> FS a b
-anaFS g = undefined
+anaFS g = inFS . recFS (anaFS g) . g
 
-hyloFS g h = undefined
+hyloFS g h = cataFS g . anaFS h
 \end{code}
 Outras funções pedidas:
 \begin{code}
+
 check :: (Eq a) => FS a b -> Bool
-check = undefined
-
+check = cataFS (uncurry (==) . split (nub . map fst) (map fst))
+  
 tar :: FS a b -> [(Path a, b)]
-tar = undefined
-
+tar = cataFS (concat . map (mapPath . (id >< (either filePath  id))))
+  where filePath = singl . split (const []) id
+        mapPath (a,b) = map ((:) a >< id) b
+        
 untar :: (Eq a) => [(Path a, b)] -> FS a b
 untar = undefined
 
