@@ -1234,9 +1234,10 @@ tar :: FS a b -> [(Path a, b)]
 tar = cataFS (concat . map (mapPath . (id >< (either filePath  id))))
   where filePath = singl . split (const []) id
         mapPath (a,b) = map ((:) a >< id) b
-        
+
 untar :: (Eq a) => [(Path a, b)] -> FS a b
-untar = undefined
+untar = joinDupDirs . anaFS (map (cond ((==1).length.fst) (head >< i1) untarPath))
+  where untarPath = split (head . fst) (i2 . singl . split (tail . fst) snd)
 
 find :: (Eq a) => a -> FS a b -> [Path a]
 find = undefined
