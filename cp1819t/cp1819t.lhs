@@ -1228,7 +1228,11 @@ Outras funções pedidas:
 \begin{code}
 
 check :: (Eq a) => FS a b -> Bool
-check = cataFS (uncurry (==) . split (nub . map fst) (map fst))
+check = cataFS (checkAll . checkSub)
+  where checkSub = map (id >< (either (const True) id))
+        checkCur = uncurry (==) . split nub id . map fst
+        getMin = cond (==[]) (const True) (minimum . map snd)
+        checkAll = uncurry (&&) . split checkCur getMin
   
 tar :: FS a b -> [(Path a, b)]
 tar = cataFS (concat . map (mapPath . (id >< (either filePath  id))))
@@ -1240,7 +1244,8 @@ untar = joinDupDirs . anaFS (map (cond ((==1).length.fst) (head >< i1) untarPath
   where untarPath = split (head . fst) (i2 . singl . split (tail . fst) snd)
 
 find :: (Eq a) => a -> FS a b -> [Path a]
-find = undefined
+find a = cataList (either (const [])  (keepCond a)) . tar 
+  where keepCond a = cond ((==a) . last . fst . fst) (uncurry (:) . (fst >< id)) snd
 
 new :: (Eq a) => Path a -> b -> FS a b -> FS a b
 new = undefined
