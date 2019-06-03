@@ -1248,10 +1248,10 @@ find a = cataList (either (const [])  (keepCond a)) . tar
   where keepCond a = cond ((==a) . last . fst . fst) (uncurry (:) . (fst >< id)) snd
 
 new :: (Eq a) => Path a -> b -> FS a b -> FS a b
-new = undefined
+new p b = untar . ((p,b):) . tar 
 
 cp :: (Eq a) => Path a -> Path a -> FS a b -> FS a b
-cp = undefined
+cp orig dest = cond (isJust . fst) (uncurry (new dest). (fromJust >< id)) snd . split (lookup orig . tar) id
 
 rm :: (Eq a) => (Path a) -> (FS a b) -> FS a b
 rm = undefined
