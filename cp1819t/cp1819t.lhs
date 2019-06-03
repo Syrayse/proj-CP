@@ -1254,7 +1254,7 @@ cp :: (Eq a) => Path a -> Path a -> FS a b -> FS a b
 cp orig dest = cond (isJust . fst) (uncurry (new dest). (fromJust >< id)) snd . split (lookup orig . tar) id
 
 rm :: (Eq a) => (Path a) -> (FS a b) -> FS a b
-rm = undefined
+rm p = untar . filter ((/=p).fst) . tar
 
 auxJoin :: ([(a, Either b c)],d) -> [(a, Either b (d,c))]
 auxJoin = undefined
