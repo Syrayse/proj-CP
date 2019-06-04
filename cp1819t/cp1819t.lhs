@@ -1170,12 +1170,14 @@ showOp (Op "*") = "MUL"
 
 \begin{code}
 inL2D :: Either a (b, (X a b,X a b)) -> X a b
-inL2D = undefined
+inL2D = either Unid a -> Comb (b><(inL2D><inL2D)
 
 outL2D :: X a b -> Either a (b, (X a b,X a b))
-outL2D = undefined
+outL2D (Unid a) = i1 a
+outL2D (Comb b n m) = i2 (b (outL2D n) (outL2D m))
 
-recL2D f = undefined
+recL2D f = baseL2D id id f
+baseL2D a b c = a -|- (b><(c><c))
 
 cataL2D g = undefined
 
