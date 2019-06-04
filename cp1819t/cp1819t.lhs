@@ -1183,10 +1183,12 @@ cataL2D g =  g . (recL2D (cataL2D g)) . outL2D
 
 anaL2D g = inL2D . (recL2D (anaL2D f)) . f
 
-collectLeafs = undefined
+collectLeafs g@(Unid a) = [a]
+collectLeafs g@(Comb b n m) = cataL2D . (map (collectLeafs) g)
 
 dimen :: X Caixa Tipo -> (Float, Float)
-dimen = undefined
+dimen (Unid ((a,b),(c,d)) = (a,b)
+dimen (Comb t a b) = add (dimen a) (dimen b)) where add (e,r) (t,y) = (e+t >< r+y)
 
 calcOrigins :: ((X Caixa Tipo),Origem) -> X (Caixa,Origem) ()
 calcOrigins = undefined
