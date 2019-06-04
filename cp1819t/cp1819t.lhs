@@ -1141,24 +1141,20 @@ anaExpr f = inExpr . (recExpr (anaExpr f)) . f
 
 hyloExpr h g = cataExpr h . anaExpr g
 
-opCorresponde :: Op -> Int -> Int -> Int
-opCorresponde (Op "+") = (+)
-opCorresponde (Op "-") = (-)
+opCorresponde :: Op -> (Int, Int) -> Int
+opCorresponde (Op "+") = uncurry (+)
+opCorresponde (Op "-") = uncurry (-)
 
 calcula :: Expr -> Int
-calcula = cataExpr (either id (\(o,b)->uncurry (opCorresponde o) b))
-
-showAux :: (Op,(String, String)) -> String
-showAux ((Op a),(s1,s2)) = "(" ++ s1 ++ " " ++ a ++ " " ++ s2 ++ ")"
+calcula = cataExpr (either id (uncurry opCorresponde))
 
 show' = cataExpr (either show showAux)
+  where showAux((Op a),(s1,s2)) = "(" ++ s1 ++ " " ++ a ++ " " ++ s2 ++ ")"
 
 compile :: String -> Codigo
 compile = cataExpr (either (singl . showInt) posOrd) . fst . head . readExp
-  where posOrd (o,(e1,e2)) = e1 ++ e2 ++ (singl (showOp o))
-
-showInt :: Int -> String
-showInt = (++) "PUSH " . show
+  where posOrd = uncurry (++) . swap . (showOp >< uncurry (++))
+        showInt = (++) "PUSH " . show
 
 showOp :: Op -> String
 showOp (Op "+") = "ADD"
@@ -1170,7 +1166,7 @@ showOp (Op "*") = "MUL"
 
 \begin{code}
 inL2D :: Either a (b, (X a b,X a b)) -> X a b
-inL2D = either Unid a -> Comb (b><(inL2D><inL2D)
+inL2D = either Unid a (Comb (b><(inL2D><inL2D))
 
 outL2D :: X a b -> Either a (b, (X a b,X a b))
 outL2D (Unid a) = i1 a
