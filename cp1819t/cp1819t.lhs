@@ -113,13 +113,13 @@
 
 \begin{center}\large
 \begin{tabular}{ll}
-\textbf{Grupo} nr. & 99 (preencher)
+\textbf{Grupo} nr. & 16
 \\\hline
-a11111 & Nome1 (preencher)	
+a83996 & Filipe Fernandes
 \\
-a22222 & Nome2 (preencher)	
+a84313 & Pedro Fernandes
 \\
-a33333 & Nome3 (preencher)	
+a84930 & Rui Reis
 \end{tabular}
 \end{center}
 
@@ -1124,14 +1124,45 @@ outras funções auxiliares que sejam necessárias.
 
 \subsection*{Problema 1}
 
+De forma a definir a função \textit{in} que constitui este tipo, chegou-se a conclusão
+de que o tipo para esta função deve partir de um \textit{Either} sendo que, segundo o próprio
+tipo \textit{Expr}, muito semalhente à árvore do tipo \textit{FTree}, possui operaçóes como nós
+e números sobre os quais são efetuadas ditas operações, como folhas. Daí que qualquer estrutura
+representativa de uma \textit{Expr} terá de ser, ou um número (folha), ou uma operação com as duas
+expressões sobre as quais produz efeito.
+
+Daí que a associação é então direta, sendo que
+
+\begin{spec}
+inExpr = [Num,f Bop]
+\end{spec}
+
+Sendo que f corresponde a uma função capaz de atribuir de forma adequada, os argumentos ao construtor \textit{Bop}, tal como se segue.
+
 \begin{code}
 
 inExpr :: Either Int (Op,(Expr,Expr)) -> Expr
 inExpr = either Num (\(x,(y,z)) -> Bop y x z)
 
+\end{code}
+
+Quase que de forma análoga, \textit{outExpr} efetua uma correspondência unívoca entre os diferentes construtores de \textit{Expr}.
+Atribuindo os nós e folhas às correspondentes projeções no construtor \textit{Either}.
+
+\begin{code}
+
 outExpr :: Expr -> Either Int (Op,(Expr,Expr))
 outExpr (Num a) = i1 a
 outExpr (Bop e1 o e2) = i2 (o,(e1,e2))
+
+\end{code}
+
+\subsubsection{\{Cata, ana e hilo\}-morfismos}
+
+Utilizando uma estruturação muito semelhante àquela presente em \textit{FTree}, foi possivél chegar à presente
+estruturação de {cata, ana e hilo}-morfismos. Seguindo também a ideia base por detrás destas funções.
+
+\begin{code}
 
 recExpr f = baseExpr id f
 
@@ -1141,6 +1172,35 @@ anaExpr f = inExpr . (recExpr (anaExpr f)) . f
 
 hyloExpr h g = cataExpr h . anaExpr g
 
+\end{code}
+
+\subsubsection{Calcula}
+
+Denote-se primeiro, que o cariz deste tipo de função é quase que obrigatoriamente um catamorfismo,
+pretende consumir está nossa estrutura \textit{Expr} de forma a obter o resultado esperado por esta.
+Daí que, este catamorfismo visa então transformar esta estrutura em um inteiro, e pode ser resumida no seguinte diagrama:
+
+\begin{eqnarray*}
+\xymatrix@@C=2cm{
+    |Expr|
+           \ar[d]_-{|cataExpr g|}
+&
+    |Int + Op >< (Expr >< Expr)|
+           \ar[d]^{|id + id >< ( (cataExpr g) >< (cataExpr g)|}
+           \ar[l]_-{|inExpr|}
+\\
+     |Int|
+&
+     |Int + Op >< (Int >< Int)|
+           \ar[l]^-{|g|}
+}
+\end{eqnarray*}
+
+Apartir deste diagrama acima, fica ímplicito que o gene deste catamorfismo terá de ser capaz de transformar o que tanto pode ser um só número
+em si próprio, ou indicar o resultado de uma operação sobre dois números. Daí que se chega à seguinte codificação final:
+
+\begin{code}
+
 opCorresponde :: Op -> (Int, Int) -> Int
 opCorresponde (Op "+") = uncurry (+)
 opCorresponde (Op "-") = uncurry (-)
@@ -1148,52 +1208,149 @@ opCorresponde (Op "-") = uncurry (-)
 calcula :: Expr -> Int
 calcula = cataExpr (either id (uncurry opCorresponde))
 
-show' = cataExpr (either show showAux)
-  where showAux((Op a),(s1,s2)) = "(" ++ s1 ++ " " ++ a ++ " " ++ s2 ++ ")"
+\end{code}
 
+\subsubsection{Compile}
+
+Tal como a função acima, esta é também necessariamente um catamorfismo, do qual se pretende obter uma lista de códigos.
+Esta lista de códigos nada mais é do que um representação textual destas entidades númericas.
+
+Após estudar com atenção os exemplos fornecidos, chegou-se a conclusão que a ordenação que se pretendia obter corresponde
+a uma travessia \textit{post-order}. Daí que o gene deste catamorfismo deve ter em atenção a existência desta travessia.
+
+\begin{code}
 compile :: String -> Codigo
 compile = cataExpr (either (singl . showInt) posOrd) . fst . head . readExp
-  where posOrd = uncurry (++) . swap . (showOp >< uncurry (++))
+  where posOrd (o,(e1,e2)) = e1 ++ e2 ++ (singl (showOp o))
         showInt = (++) "PUSH " . show
 
 showOp :: Op -> String
 showOp (Op "+") = "ADD"
 showOp (Op "*") = "MUL"
-
 \end{code}
 
-\subsection*{Problema 2}
+\subsubsection{Show}
+
+Como as demais, esta função possui também uma natureza de catamorfismo. Na qual se pretende obter a representação textual
+de uma \textit{Expr}. Logo, o gene deste catamorfismo deve ser capaz de ou mostrar diretamente o número existente (caso este seja o elemento da \textit{Expr}),
+ou representar textualmente a operação aritmética associada a um dado nó e correspondentes filhos.
+
+\begin{code}
+show' = cataExpr (either show showAux)
+  where showAux((Op a),(s1,s2)) = "(" ++ s1 ++ " " ++ a ++ " " ++ s2 ++ ")"
+\end{code}
+
+\subsection{Problema 2}
+
+\subsubsection{\{Cata, ana e hilo\}-morfismos}
+
+Semelhante ao exercícios anterior, todos tipos de morfismos são iguais aos acima. Visto que continua a se tratar de um tipo de árvore específico.
 
 \begin{code}
 inL2D :: Either a (b, (X a b,X a b)) -> X a b
-inL2D = either Unid a (Comb (b><(inL2D><inL2D))
+inL2D = either Unid (\(b,(x1,x2)) -> Comp b x1 x2)
 
-outL2D :: X a b -> Either a (b, (X a b,X a b))
+outL2D :: X a b -> Either a (b, (X a b, X a b))
 outL2D (Unid a) = i1 a
-outL2D (Comb b n m) = i2 (b (outL2D n) (outL2D m))
+outL2D (Comp b x1 x2) = i2 (b,(x1,x2))
+
+baseL2D f g h = f -|- (g >< (h >< h))
 
 recL2D f = baseL2D id id f
-baseL2D a b c = a -|- (b><(c><c))
 
-cataL2D g = undefined
+cataL2D g = g . recL2D (cataL2D g) . outL2D
 
-anaL2D g = undefined
+anaL2D g = inL2D . recL2D (anaL2D g) . g
+\end{code}
 
-collectLeafs = undefined
+\subsubsection{\textit{Collect leafs}}
 
+Esta função visa armazenar todas as folhas presentes nesta nossa estrutura. Daí que é quase que estritamente um catamorfismo. Sendo que se coleciona as folhas caso seja possivél, caso contrário retorna-se o \textit{nil}.
+
+\begin{code}
+collectLeafs = cataL2D (either singl (uncurry (++) . snd))
+\end{code}
+
+\subsubsection{Dimensões}
+
+Após estudo, chegou se a conclusão que há fatores em comum entre os diferentes tipos de colocação de figuras, pelo menos no que diz respeito às dimensões. Neste aspeto, todos os tipos na vertical partilham entre si uma caracteristica, tal como todos os tipos na horizontal. Sendo que desta forma é possivél de forma eficiente obter as dimensões reais da figura. Como se segue:
+
+\begin{code}
 dimen :: X Caixa Tipo -> (Float, Float)
-dimen = undefined
+dimen = cataL2D (either ((fromIntegral >< fromIntegral) . p1) (uncurry getDem . (id >< joinAxis)))
+  where joinAxis = split (p1 >< p1) (p2 >< p2)
 
+getDem :: Tipo -> ((Float,Float),(Float,Float)) -> (Float,Float)
+getDem V = (uMax >< uAdd)
+getDem Vd = (uMax >< uAdd)
+getDem Ve = (uMax >< uAdd)
+getDem _ = (uAdd >< uMax)
+
+uMax = uncurry max
+uAdd = uncurry (+)
+\end{code}
+
+\subsubsection{Calcula origens}
+
+Necessariamente um anamorfismo, sendo que se pretende algo aquilo uma estrutura especifica. Daí que através de sucessivas aplicações se obtem uma arvóre, tal que as suas folhas correspondem unicamente a todas as caixas e respetivas origens presentes no sistema.
+
+\begin{code}
 calcOrigins :: ((X Caixa Tipo),Origem) -> X (Caixa,Origem) ()
-calcOrigins = undefined
+calcOrigins = anaL2D (either (i1 . id) (i2 . fty) . distl . (outL2D >< id))
+  where fty  = \((t,(x1,x2)),o) -> ((),((x1,o),(x2,calc t o (dimen x1))))
 
 calc :: Tipo -> Origem -> (Float, Float) -> Origem
-calc = undefined 
+calc V o (a,b) = sumTup o (a / 2, b)
+calc Vd o b = sumTup o b
+calc Ve o (a,b) = sumTup o (0, b)
+calc H o (a,b) = sumTup o (a, b / 2)
+calc Hb o (a,b) = sumTup o (a, 0)
+calc Ht o b = sumTup o b
 
-caixasAndOrigin2Pict = undefined
+sumTup (a,b) (c,d) = (a + c, b + d)
+\end{code}
+
+\subsubsection{Finalização}
+
+De forma a finalizar este secção, e assumindo a existência das funções mencionadas no relatório, chegou-se às seguintes definições intuitivas sobre o que foi pedido.
+
+\begin{code}
+agrup_caixas :: X (Caixa, Origem) () -> Fig
+agrup_caixas = cataList (either nil (uncurry (:) . (swap >< id))) . collectLeafs 
+
+caixasAndOrigin2Pict = G.pictures . cataList (either nil (uncurry (:) . (makePic >< id))) . agrup_caixas . calcOrigins
+  where makePic (org,((ii,ij),(t,c))) = crCaixa org (fromIntegral ii) (fromIntegral ij) t c
+
+mostra_caixas = display . caixasAndOrigin2Pict
+
 \end{code}
 
 \subsection*{Problema 3}
+
+Tal como descrito em exercicios semelhantes, apresenta-se de seguida a definição que permitiu alcançar esta solução.
+
+\begin{eqnarray*}
+  cos\ x = \sum_{i=0}^\infty \frac{(-1)^i}{(2i)!} x^{2i}
+\end{eqnarray*}
+
+Seja $c\ x\ n = \sum_{i=0}^{n} \frac{(-1)^i}{(2i)!} x^{2i}$ a função que permite obter está aproximação, então resulta que |c x 0 = 1| e que $|c x (n+1)| = |c x n| + \frac{(-1)^{n + 1}}{(2n + 2)!} x^{2n + 2}$. Esta função é passivél de ser simplificada, definindo $|k x n| = \frac{(-1)^{n + 1}}{(2n + 2)!} x^{2n + 2}$ a partir do qual se obtem que $|k x 0| = \frac{-x^2}{2}$ e que $|k x (n+1)| = \frac{-x^2}{2(n + 2)(2n + 3)} (|k x n|)$. A qual é possivél simplificar ainda mais assumindo $|s n| = (n + 2)(2n + 3)$ do qual se obtem que $|s 0| = 6$ e que $|s (n+1)| = 4n + 9 + |s n|$, e , como as demais, é possivél simplificar ainda mais definindo $|j n| = 4n + 9$, que permite obter $|j 0| = 9$ e que $|j (n + 1)| = 4 + |j n|$, a qual é impossivél simplificar mais. Daí que se obtém a seguinte quatro funções mutuamente recursivas.
+
+\begin{spec}
+c x 0 = 1
+c x (n + 1) = (k x n) + (c x n) 
+
+k x 0 = -(x^2)/2
+k x (n + 1) = (-x^2/(2*(s n))) * (k x n)
+
+s 0 = 6
+s (n + 1) = (j n) + (s n)
+
+j 0 = 9
+j (n + 1) = 4 + (j n)
+\end{spec}
+
+As quais permitem obter a seguinte definição em \textit{Haskell}:
+
 Solução:
 \begin{code}
 cos' x = prj . for loop init where
@@ -1203,57 +1360,158 @@ cos' x = prj . for loop init where
 \end{code}
 
 \subsection*{Problema 4}
-Triologia ``ana-cata-hilo":
-\begin{code}
-outFS :: FS a b -> [(a, Either b (FS a b))]
-outFS (FS l) = map (id >< outNode) l
 
+Após estudo dos \textit{data types} em questão chegou-se a conclusão de que, o \textit{data type FS} pode ser associado ao seguinte functor base.
+
+\begin{spec}
+B(a, b, FS a b) = [(a, Either b (FS a b))]
+\end{spec}
+
+\subsubsection{outNode e outFS}
+
+Genericamente, a função \textit{outNode} permite criar uma estrutura \textit{Either} que contém ou o conteúdo de um dado ficheiro, ou a estrutura \textit{FS} associada a uma dada diretória. Desta forma podendo contemplar ambas as entidades de uma só vez.
+
+A função \textit{outFS} aproveita esta definição, no sentido em que permite sintetizar, na formatação do functor, a estrutura \textit{FS a b}, associado a cada identificador, ou o ficheiro a que corresponde, ou a estrutura/diretória \textit{FS} a que diz respeito.
+
+\begin{code}
 outNode :: Node a b ->  Either b (FS a b)
 outNode (File b) = i1 b
 outNode (Dir fs) = i2 fs
 
-baseFS f g h = map (f >< ( g -|- h))
+outFS :: FS a b -> [(a, Either b (FS a b))]
+outFS (FS l) = map (id >< outNode) l
+\end{code}
 
+\subsubsection{\{Cata, ana e hilo\}-morfismos}
+
+Assumindo a seguinte codificação do functor base, é possivél fornecer uma definição à função \textit{recFS} que será necessária mais à frente.
+
+\begin{code}
+baseFS f g h = map (f >< ( g -|- h))
+\end{code}
+
+Com o conhecimento do functor base, encontrar o correspondente catamorfismo é trivial, sendo que corresponde à típica técnica utilizada, que origina o seguinte diagrama, com a respetiva codificação associada:
+
+\begin{eqnarray*}
+\xymatrix@@C=4cm{
+    |FS a b|
+           \ar[d]_-{|cataFS g|}
+           \ar[r]^{|outFS|}
+&
+    |[a >< (b + (FS a b))]|
+           \ar[d]^{|map(id >< (id + (cataFS g)))|}
+\\
+     |C|
+&
+     |[a >< (b + C)]|
+           \ar[l]^-{|g|}
+}
+\end{eqnarray*}
+
+\begin{code}
 cataFS :: ([(a, Either b c)] -> c) -> FS a b -> c
 cataFS g = g . recFS (cataFS g) . outFS
+\end{code}
 
+De igual forma, é possivél construir o seguinte anamorfismo:
+
+\begin{eqnarray*}
+\xymatrix@@C=4cm{
+    |FS a b|
+&
+    |[a >< (b + (FS a b))]|
+           \ar[l]_{|inFS|}
+\\
+     |C|
+           \ar[u]^-{|anaFS g|}
+           \ar[r]_-{|g|}
+&
+     |[a >< (b + C)]|
+           \ar[u]_{|map(id >< (id + (anaFS g)))|}         
+}
+\end{eqnarray*}
+
+\begin{code}
 anaFS :: (c -> [(a, Either b c)]) -> c -> FS a b
 anaFS g = inFS . recFS (anaFS g) . g
+\end{code}
 
+Logo, é possivél obter a seguinte definição do hilomorfismo:
+
+\begin{code}
 hyloFS g h = cataFS g . anaFS h
 \end{code}
-Outras funções pedidas:
-\begin{code}
 
+\subsubsection{\textit{Check}}
+
+\begin{code}
 check :: (Eq a) => FS a b -> Bool
 check = cataFS (checkAll . checkSub)
   where checkSub = map (id >< (either (const True) id))
         checkCur = uncurry (==) . split nub id . map fst
         getMin = cond (==[]) (const True) (minimum . map snd)
         checkAll = uncurry (&&) . split checkCur getMin
-  
+\end{code}  
+
+\subsubsection{\textit{Tar}}
+
+\begin{code}
 tar :: FS a b -> [(Path a, b)]
 tar = cataFS (concat . map (mapPath . (id >< (either filePath  id))))
   where filePath = singl . split (const []) id
         mapPath (a,b) = map ((:) a >< id) b
+\end{code}
 
+\subsubsection{\textit{Untar}}
+
+\begin{code}
 untar :: (Eq a) => [(Path a, b)] -> FS a b
 untar = joinDupDirs . anaFS (map (cond ((==1).length.fst) (head >< i1) untarPath))
   where untarPath = split (head . fst) (i2 . singl . split (tail . fst) snd)
+\end{code}
 
+\subsubsection{\textit{Find}}
+
+Após aplicar a função \textit{tar} obtêm-se todos os \textit{paths} até todos os ficheiros, sendo que depois
+basta verificar que algum desses \textit{paths} possui o identificador do ficheiro como diretória. E se de facto
+se verificar, então significa que aquele \textit{path} é válido até ao ficheiro que se pretende.
+
+\begin{code}
 find :: (Eq a) => a -> FS a b -> [Path a]
 find a = cataList (either (const [])  (keepCond a)) . tar 
   where keepCond a = cond ((==a) . last . fst . fst) (uncurry (:) . (fst >< id)) snd
+\end{code}
 
+\subsubsection{\textit{New}}
+
+Adiciona na cabeça da representação em lista da estrutura \textit{FS a b} o \textit{path} indicado e o respetivo conteúdo do ficheiro. Aplicando de seguida a função \textit{untar} que cria a estrutura \textit{FS a b} com este novo ficheiro.
+
+\begin{code}
 new :: (Eq a) => Path a -> b -> FS a b -> FS a b
 new p b = untar . ((p,b):) . tar 
+\end{code}
 
+\subsubsection{\textit{Copy}}
+
+Após obter a representação em lista da estrutura \textit{FS a b}, é efetuada uma procurar pelo \textit{path} de origem indicado, e de seguida, se existir tal \textit{path} adicionar este à estrutura \textit{FS a b} utilizando a função \textit{new} acima.
+
+\begin{code}
 cp :: (Eq a) => Path a -> Path a -> FS a b -> FS a b
 cp orig dest = cond (isJust . fst) (uncurry (new dest). (fromJust >< id)) snd . split (lookup orig . tar) id
+\end{code}
 
+\subsubsection{\textit{Remove}}
+
+Devido à existência das funções \textit{tar} e \textit{untar} é possivél criar é possivél obter uma representação em lista da estrutura \textit{FS a b} e de seguida remover desta estrutura o path indicado, e de seguida voltar a montar a estrutura \textit{FS a b}.
+
+\begin{code}
 rm :: (Eq a) => (Path a) -> (FS a b) -> FS a b
 rm p = untar . filter ((/=p).fst) . tar
+\end{code}
 
+\subsubsection{Funções não construídas}
+
+\begin{code}
 auxJoin :: ([(a, Either b c)],d) -> [(a, Either b (d,c))]
 auxJoin = undefined
 
