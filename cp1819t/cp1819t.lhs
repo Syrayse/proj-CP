@@ -1203,7 +1203,7 @@ em si próprio, ou indicar o resultado de uma operação sobre dois números. Da
 
 opCorresponde :: Op -> (Int, Int) -> Int
 opCorresponde (Op "+") = uncurry (+)
-opCorresponde (Op "-") = uncurry (-)
+opCorresponde (Op "*") = uncurry (*)
 
 calcula :: Expr -> Int
 calcula = cataExpr (either id (uncurry opCorresponde))
@@ -1221,8 +1221,9 @@ a uma travessia \textit{post-order}. Daí que o gene deste catamorfismo deve ter
 \begin{code}
 compile :: String -> Codigo
 compile = cataExpr (either (singl . showInt) posOrd) . fst . head . readExp
-  where posOrd (o,(e1,e2)) = e1 ++ e2 ++ (singl (showOp o))
+  where posOrd = uncurry (++) .swap . ((singl . showOp) >< (uncurry (++)))
         showInt = (++) "PUSH " . show
+
 
 showOp :: Op -> String
 showOp (Op "+") = "ADD"
